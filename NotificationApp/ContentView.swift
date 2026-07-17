@@ -75,7 +75,7 @@ struct ContentView: View {
 
     private var permissionDeniedBanner: some View {
         Button {
-            notificationManager.openAppSettings()     
+            notificationManager.openAppSettings()
         } label: {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
