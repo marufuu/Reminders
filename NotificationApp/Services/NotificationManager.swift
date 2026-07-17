@@ -105,6 +105,30 @@ final class NotificationManager: NSObject, ObservableObject {
         logger.info("Cancelled notification id=\(reminder.id.uuidString, privacy: .public)")
     }
 
+    /// More general than `scheduleNotification(for:)` above — schedules a
+    /// one-time notification a given number of seconds from now, identified
+    /// by an arbitrary `id` you choose rather than a `Reminder`'s id. Used by
+    /// the countdown timer feature, which has no `Reminder` of its own.
+    func scheduleNotification(id: String, title: String, body: String, secondsFromNow: TimeInterval) {
+        guard secondsFromNow > 0 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: secondsFromNow, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        center.add(request)
+        logger.info("Scheduled notification id=\(id, privacy: .public) firing in \(secondsFromNow, privacy: .public)s")
+    }
+
+    /// Cancels a notification scheduled via the `id`-based overload above.
+    func cancelNotification(id: String) {
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+        logger.info("Cancelled notification id=\(id, privacy: .public)")
+    }
+
     func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         logger.debug("Opening system Settings app for this app (user tapped the permission-denied banner).")

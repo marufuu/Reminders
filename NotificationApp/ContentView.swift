@@ -4,103 +4,90 @@
 //
 //  Created by Maruf on 15/7/26.
 //
+//  This is now the app's Home screen. It owns the single NavigationStack for
+//  the whole app and presents two features as tappable cards. The
+//  destinations (RemindersView, CountdownTimerView) deliberately do NOT wrap
+//  themselves in their own NavigationStack — they rely on this one, so their
+//  own .navigationTitle/.toolbar still show up correctly once pushed.
+//
 
 import SwiftUI
-import os
 
 struct ContentView: View {
-    @StateObject private var viewModel = ReminderListViewModel()
-    @StateObject private var notificationManager = NotificationManager.shared
-
-    @State private var isPresentingAddReminder = false
-    @State private var reminderToEdit: Reminder?
-
-    private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "NotificationApp",
-        category: "ContentView"
-    )
-
     var body: some View {
         NavigationStack {
-            List {
-                if notificationManager.authorizationStatus == .denied {
-                    permissionDeniedBanner
-                }
-
-                if viewModel.sortedReminders.isEmpty {
-                    ContentUnavailableView(
-                        "No Reminders",
-                        systemImage: "bell.badge",
-                        description: Text("Tap + to add your first reminder.")
-                    )
-                    .listRowSeparator(.hidden)
-                } else {
-                    ForEach(viewModel.sortedReminders) { reminder in
-                        ReminderRow(reminder: reminder)
-                            .contentShape(Rectangle())
-                            .onTapGesture { reminderToEdit = reminder }
-                    }
-                    .onDelete(perform: deleteReminders)
-                }
-            }
-            .navigationTitle("Reminders")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isPresentingAddReminder = true
+            ScrollView {
+                VStack(spacing: 16) {
+                    NavigationLink {
+                        RemindersView()
                     } label: {
-                        Image(systemName: "plus")
+                        HomeFeatureCard(
+                            title: "Reminders",
+                            subtitle: "Create reminders that notify you at a set time",
+                            systemImage: "bell.badge.fill",
+                            tint: .orange
+                        )
                     }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        CountdownTimerView()
+                    } label: {
+                        HomeFeatureCard(
+                            title: "Countdown Timer",
+                            subtitle: "Set a duration and count down to zero",
+                            systemImage: "timer",
+                            tint: .blue
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
+                .padding()
             }
-            .sheet(isPresented: $isPresentingAddReminder) {
-                AddEditReminderView(viewModel: viewModel)
-            }
-            .sheet(item: $reminderToEdit) { reminder in
-                AddEditReminderView(viewModel: viewModel, reminder: reminder)
-            }
-            .task {
-                // Entry point for the notification permission flow. This runs
-                // once as soon as this screen appears (e.g. right after
-                // launch). It calls into NotificationManager, whose
-                // `requestAuthorizationIfNeeded()` is the function that
-                // actually triggers iOS's native permission popup
-                // ("NotificationApp Would Like to Send You Notifications") —
-                // see the detailed comment on that function for how/why.
-                logger.debug("ContentView appeared — requesting notification authorization if needed.")
-                await notificationManager.requestAuthorizationIfNeeded()
-            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Home")
         }
     }
+}
 
-    private var permissionDeniedBanner: some View {
-        Button {
-            notificationManager.openAppSettings()
-        } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Notifications Disabled")
-                        .font(.subheadline.bold())
-                    Text("Tap to enable reminders in Settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } icon: {
-                Image(systemName: "bell.slash.fill")
-                    .foregroundStyle(.red)
+/// A large tappable card shown on the home screen for one feature.
+private struct HomeFeatureCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(tint.gradient)
+                    .frame(width: 56, height: 56)
+                Image(systemName: systemImage)
+                    .font(.title2)
+                    .foregroundStyle(.white)
             }
-        }
-        .foregroundStyle(.primary)
-    }
 
-    /// Maps swipe-to-delete offsets (indices into the sorted list) back to the
-    /// underlying reminders before removing them, so the sort order can't
-    /// desync from the deletion.
-    private func deleteReminders(at offsets: IndexSet) {
-        let sorted = viewModel.sortedReminders
-        let toDelete = offsets.map { sorted[$0] }
-        logger.info("Swipe-deleting \(toDelete.count, privacy: .public) reminder(s).")
-        toDelete.forEach(viewModel.deleteReminder)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
     }
 }
 
