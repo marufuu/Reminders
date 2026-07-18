@@ -7,14 +7,9 @@ internal import Combine
 import Foundation
 import os
 
-/// Owns the list of reminders, exposes CRUD operations to the views, and
-/// keeps each reminder's scheduled notification in sync with its data.
-///
-/// Storage: backed by `ReminderDatabase` (SQLite), not the old JSON file.
-/// Each method below calls one specific SQL operation (insert/update/delete)
-/// for exactly the row that changed, then updates the in-memory `reminders`
-/// array to match — unlike the old approach of rewriting an entire JSON file
-/// on every change.
+// Owns the list of reminders and exposes CRUD operations to the views.
+// Backed by ReminderDatabase (SQLite) — each method runs one SQL operation
+// for the row that changed, then updates `reminders` to match.
 @MainActor
 final class ReminderListViewModel: ObservableObject {
     private let logger = Logger(
@@ -33,7 +28,7 @@ final class ReminderListViewModel: ObservableObject {
         logger.info("Loaded \(self.reminders.count, privacy: .public) reminder(s) from SQLite on init.")
     }
 
-    /// Reminders sorted soonest-first, the order the list UI displays them in.
+    /* Reminders sorted soonest-first, the order the list UI displays them in. */
     var sortedReminders: [Reminder] {
         reminders.sorted { $0.date < $1.date }
     }
@@ -53,7 +48,7 @@ final class ReminderListViewModel: ObservableObject {
         }
         database.update(reminder)
         reminders[index] = reminder
-        // Re-schedule since the date (or title) may have changed.
+        /* Re-schedule since the date/title may have changed. */
         notificationManager.cancelNotification(for: reminder)
         notificationManager.scheduleNotification(for: reminder)
         logger.info("Updated reminder id=\(reminder.id.uuidString, privacy: .public), rescheduled its notification.")

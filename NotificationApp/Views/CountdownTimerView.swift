@@ -2,9 +2,8 @@
 //  CountdownTimerView.swift
 //  NotificationApp
 //
-//  The countdown timer screen: pick a duration, watch a live circular
-//  countdown, then see a "time's up" state. Pushed from the Home screen, so
-//  (like RemindersView) it doesn't wrap itself in its own NavigationStack.
+//  Pick a duration, watch a live circular countdown, then see a "time's up"
+//  state. Pushed from the Home screen, so it doesn't own a NavigationStack.
 //
 
 import SwiftUI
@@ -32,7 +31,7 @@ struct CountdownTimerView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: - Configuring (picking a duration)
+    // MARK: - Configuring
 
     private var configuringView: some View {
         VStack(spacing: 24) {

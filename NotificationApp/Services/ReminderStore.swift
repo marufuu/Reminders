@@ -6,10 +6,8 @@
 import Foundation
 import os
 
-/// Persists reminders to a JSON file in the app's Documents directory so
-/// they survive an app relaunch. Plain synchronous file I/O with no shared
-/// mutable state, so it opts out of this project's default main-actor
-/// isolation rather than inheriting it.
+// Persists reminders to a JSON file (unused — superseded by
+// ReminderDatabase; kept here for reference).
 nonisolated struct ReminderStore {
     private let fileURL: URL
     private let logger = Logger(

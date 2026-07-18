@@ -7,37 +7,28 @@ internal import Combine
 import Foundation
 import os
 
-/// Drives the countdown timer feature: the user picks a duration, taps
-/// Start, and this ticks `remainingSeconds` down to zero once per second.
-/// It also schedules a local notification for the moment the timer finishes,
-/// so the user is told even if the app isn't in the foreground at the time.
+// Drives the countdown timer: the user picks a duration, then this ticks
+// remainingSeconds down once per second and schedules a local notification
+// for the moment it finishes.
 @MainActor
 final class CountdownTimerViewModel: ObservableObject {
     enum TimerState: Equatable {
-        case configuring   // picking a duration, not started yet
+        case configuring
         case running
         case paused
         case finished
     }
 
-    /// Fixed id for the "time's up" notification, so it can be looked up
-    /// again later for cancellation (e.g. if the user pauses or resets).
     private static let notificationID = "countdown-timer-complete"
 
-    /// Bound to the minutes/seconds wheel pickers while `state == .configuring`.
     @Published var selectedMinutes: Int = 5
     @Published var selectedSeconds: Int = 0
-
     @Published private(set) var remainingSeconds: Int = 0
     @Published private(set) var state: TimerState = .configuring
 
-    /// Holds the repeating 1-second timer subscription while running; nil
-    /// whenever the timer isn't actively counting down.
     private var ticker: AnyCancellable?
-
-    /// The duration the countdown started at, captured once at Start —
-    /// needed so `progress` can be computed even after `selectedMinutes`/
-    /// `selectedSeconds` no longer matter.
+    /* Duration the countdown started at — captured once at Start so
+       `progress` stays correct even after the pickers change. */
     private var totalDurationSeconds: Int = 0
 
     private let notificationManager = NotificationManager.shared
@@ -48,21 +39,19 @@ final class CountdownTimerViewModel: ObservableObject {
 
     var totalSecondsSelected: Int { selectedMinutes * 60 + selectedSeconds }
 
-    /// "05:00" style display of `remainingSeconds`.
     var formattedRemaining: String {
         let minutes = remainingSeconds / 60
         let seconds = remainingSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
-    /// 0 at the start of the countdown, 1 once finished — drives the
-    /// circular progress ring in the UI.
+    /* 0 at the start, 1 when finished — drives the circular progress ring. */
     var progress: Double {
         guard totalDurationSeconds > 0 else { return 0 }
         return 1 - (Double(remainingSeconds) / Double(totalDurationSeconds))
     }
 
-    /// Starts a fresh countdown (from `.configuring`) or resumes a paused one.
+    /* Starts a fresh countdown, or resumes a paused one. */
     func start() {
         if state == .configuring {
             guard totalSecondsSelected > 0 else { return }
@@ -74,9 +63,8 @@ final class CountdownTimerViewModel: ObservableObject {
         state = .running
         logger.info("Timer started/resumed: \(self.remainingSeconds, privacy: .public)s remaining")
 
-        // Schedule the "time's up" notification for exactly when the
-        // remaining time will hit zero, so it still fires if the app gets
-        // backgrounded mid-countdown.
+        /* Scheduled for exactly when time runs out, so it still fires if
+           the app is backgrounded mid-countdown. */
         notificationManager.scheduleNotification(
             id: Self.notificationID,
             title: "Time's Up",
@@ -96,13 +84,11 @@ final class CountdownTimerViewModel: ObservableObject {
         state = .paused
         ticker?.cancel()
         ticker = nil
-        // Cancel the pending notification — it was scheduled for the
-        // original finish time, which no longer applies once paused.
         notificationManager.cancelNotification(id: Self.notificationID)
         logger.info("Timer paused with \(self.remainingSeconds, privacy: .public)s remaining")
     }
 
-    /// Cancels the countdown entirely and returns to duration-picking.
+    /* Cancels the countdown entirely and returns to duration-picking. */
     func reset() {
         ticker?.cancel()
         ticker = nil

@@ -9,9 +9,8 @@ internal import Combine
 import UIKit
 import os
 
-/// Wraps `UNUserNotificationCenter`: requests permission, schedules/cancels
-/// per-reminder notifications, and routes the user to Settings when
-/// permission has been denied.
+// Wraps UNUserNotificationCenter: requests permission, schedules/cancels
+// notifications, and routes the user to Settings when permission is denied.
 @MainActor
 final class NotificationManager: NSObject, ObservableObject {
     static let shared = NotificationManager()
@@ -19,10 +18,6 @@ final class NotificationManager: NSObject, ObservableObject {
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
     private let center = UNUserNotificationCenter.current()
-
-    /// Structured logger for this class. View logs live in Xcode's console
-    /// while debugging, or in Console.app (filter by subsystem = your bundle
-    /// id, category = "NotificationManager") to see them on-device too.
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "NotificationApp",
         category: "NotificationManager"
@@ -33,23 +28,9 @@ final class NotificationManager: NSObject, ObservableObject {
         center.delegate = self
     }
 
-    /// Requests permission only the first time (status `.notDetermined`).
-    /// Call `refreshAuthorizationStatus()` separately to pick up changes the
-    /// user makes in Settings after that.
-    ///
-    /// *** This is where the native system popup comes from. ***
-    /// The line `center.requestAuthorization(options:)` below is the single
-    /// call that makes iOS display its built-in alert:
-    ///   "NotificationApp Would Like to Send You Notifications"
-    ///   Allow / Allow in Scheduled Summary / Don't Allow
-    /// That dialog is rendered entirely by iOS (SpringBoard), outside our
-    /// app's UI — we don't draw it and can't restyle it. The only things we
-    /// control are *which* capabilities we ask for (the `options:` array,
-    /// which is why "Allow in Scheduled Summary" appears) and *when* we call
-    /// this function. iOS only shows the popup while status is
-    /// `.notDetermined`, i.e. the very first time we ask — that's what the
-    /// guard below enforces on our side too, so we don't even attempt it
-    /// again on subsequent launches.
+    /* Requests permission only the first time (status .notDetermined).
+       requestAuthorization(options:) below triggers iOS's native popup —
+       we only control which options we ask for and when we call this. */
     func requestAuthorizationIfNeeded() async {
         await refreshAuthorizationStatus()
 
@@ -65,21 +46,15 @@ final class NotificationManager: NSObject, ObservableObject {
         await refreshAuthorizationStatus()
     }
 
-    /// Re-reads the current permission state from iOS. This value is not
-    /// something we store ourselves — `UNUserNotificationCenter` asks a
-    /// system-level daemon that is the single source of truth for this app's
-    /// permission state (the same record Settings > Notifications reads and
-    /// writes). That's why we re-check it here rather than caching a value
-    /// we set once: the user can flip it in Settings at any time, outside
-    /// our app's control.
+    /* Re-reads permission state from iOS — the OS's own record, not cached,
+       since the user can change it in Settings anytime. */
     func refreshAuthorizationStatus() async {
         authorizationStatus = await center.notificationSettings().authorizationStatus
         logger.debug("authorizationStatus refreshed -> \(String(describing: self.authorizationStatus), privacy: .public)")
     }
 
-    /// Schedules a one-time local notification that fires at `reminder.date`.
-    /// Uses the reminder's own id as the request identifier so it can be
-    /// looked up later for cancellation or rescheduling.
+    /* Schedules a one-time notification at reminder.date, keyed by the
+       reminder's own id so it can be cancelled/rescheduled later. */
     func scheduleNotification(for reminder: Reminder) {
         let content = UNMutableNotificationContent()
         content.title = "Reminder"
@@ -105,10 +80,8 @@ final class NotificationManager: NSObject, ObservableObject {
         logger.info("Cancelled notification id=\(reminder.id.uuidString, privacy: .public)")
     }
 
-    /// More general than `scheduleNotification(for:)` above — schedules a
-    /// one-time notification a given number of seconds from now, identified
-    /// by an arbitrary `id` you choose rather than a `Reminder`'s id. Used by
-    /// the countdown timer feature, which has no `Reminder` of its own.
+    /* General-purpose version of scheduleNotification(for:) for features
+       (like the countdown timer) with no Reminder of their own. */
     func scheduleNotification(id: String, title: String, body: String, secondsFromNow: TimeInterval) {
         guard secondsFromNow > 0 else { return }
 
@@ -123,7 +96,6 @@ final class NotificationManager: NSObject, ObservableObject {
         logger.info("Scheduled notification id=\(id, privacy: .public) firing in \(secondsFromNow, privacy: .public)s")
     }
 
-    /// Cancels a notification scheduled via the `id`-based overload above.
     func cancelNotification(id: String) {
         center.removePendingNotificationRequests(withIdentifiers: [id])
         logger.info("Cancelled notification id=\(id, privacy: .public)")
@@ -131,19 +103,17 @@ final class NotificationManager: NSObject, ObservableObject {
 
     func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        logger.debug("Opening system Settings app for this app (user tapped the permission-denied banner).")
+        logger.debug("Opening system Settings app for this app.")
         UIApplication.shared.open(url)
     }
 }
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
-    /// Lets the banner and sound show even while the app is in the foreground.
+    /* Lets the banner and sound show even while the app is in the foreground. */
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        // Local Logger instance here (not `self.logger`) because this method
-        // is `nonisolated` and can't touch main-actor-isolated properties.
         Logger(subsystem: Bundle.main.bundleIdentifier ?? "NotificationApp", category: "NotificationManager")
             .info("willPresent notification id=\(notification.request.identifier, privacy: .public) while app is in foreground.")
         return [.banner, .sound, .badge]

@@ -6,8 +6,8 @@
 import SwiftUI
 import os
 
-/// A form for creating a new reminder or editing an existing one.
-/// Passing `reminder` puts the view in edit mode; omitting it creates a new reminder.
+// A form for creating a new reminder or editing an existing one.
+// Passing `reminder` puts the view in edit mode; omitting it creates a new reminder.
 struct AddEditReminderView: View {
     @ObservedObject var viewModel: ReminderListViewModel
     @Environment(\.dismiss) private var dismiss
@@ -26,8 +26,8 @@ struct AddEditReminderView: View {
     init(viewModel: ReminderListViewModel, reminder: Reminder? = nil) {
         self.viewModel = viewModel
         self.existingReminder = reminder
-        // Don't let the picker's floor exclude an existing reminder's own date,
-        // but still block picking a new date in the past.
+        /* Don't let the picker's floor exclude an existing reminder's own
+           date, but still block picking a new date in the past. */
         self.minimumDate = reminder.map { min($0.date, Date()) } ?? Date()
         _title = State(initialValue: reminder?.title ?? "")
         _date = State(initialValue: reminder?.date ?? Date().addingTimeInterval(3600))
@@ -45,18 +45,13 @@ struct AddEditReminderView: View {
                 }
 
                 Section("Date & Time") {
-                    // A plain-language summary, the same way Reminders/Calendar
-                    // show what you've currently selected.
                     Text(date.formatted(date: .complete, time: .shortened))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    // Two compact pickers bound to the SAME `date` value — the
-                    // date picker only ever touches the day/month/year part,
-                    // the time picker only touches hour/minute, so they don't
-                    // clobber each other. This is the same pattern iOS's own
-                    // Reminders app uses, and it's far less space-hungry than
-                    // an always-open full calendar grid.
+                    /* Both pickers edit the same `date` — one touches only
+                       the day, the other only the time, so neither clobbers
+                       the other. */
                     HStack {
                         Label("Date", systemImage: "calendar")
                         Spacer()
@@ -110,7 +105,6 @@ struct AddEditReminderView: View {
         }
     }
 
-    /// One pill-style quick-select button; tapping it sets `date` directly.
     private func quickButton(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
@@ -121,8 +115,6 @@ struct AddEditReminderView: View {
         .tint(.blue)
     }
 
-    /// Today + `daysFromNow` days, with the time set to `hour`:00 — used by
-    /// the "Tomorrow" / "Next Week" quick-select buttons.
     private func quickDate(daysFromNow: Int, hour: Int) -> Date {
         let calendar = Calendar.current
         let base = calendar.date(byAdding: .day, value: daysFromNow, to: Date()) ?? Date()

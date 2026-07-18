@@ -5,7 +5,7 @@
 
 import Foundation
 
-/// A single reminder with a title and the date/time it should notify the user.
+// A single reminder with a title and the date/time it should notify the user.
 struct Reminder: Identifiable, Codable, Equatable {
     let id: UUID
     var title: String

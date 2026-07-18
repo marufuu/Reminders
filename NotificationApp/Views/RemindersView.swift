@@ -2,10 +2,8 @@
 //  RemindersView.swift
 //  NotificationApp
 //
-//  The reminders list screen. This used to be the app's root ContentView;
-//  now it's pushed from the new Home screen, so it deliberately does NOT
-//  wrap itself in its own NavigationStack — it relies on the one already
-//  provided by whatever pushed it (ContentView).
+//  The reminders list screen. Pushed from the Home screen, so it doesn't
+//  wrap itself in its own NavigationStack.
 //
 
 import SwiftUI
@@ -87,9 +85,8 @@ struct RemindersView: View {
         .foregroundStyle(.primary)
     }
 
-    /// Maps swipe-to-delete offsets (indices into the sorted list) back to the
-    /// underlying reminders before removing them, so the sort order can't
-    /// desync from the deletion.
+    /* Maps swipe-to-delete offsets back to the underlying reminders before
+       removing them, so the sort order can't desync from the deletion. */
     private func deleteReminders(at offsets: IndexSet) {
         let sorted = viewModel.sortedReminders
         let toDelete = offsets.map { sorted[$0] }

@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// A single row displaying a reminder's title and formatted date/time.
+// A single row displaying a reminder's title and formatted date/time.
 struct ReminderRow: View {
     let reminder: Reminder
 

@@ -4,11 +4,8 @@
 //
 //  Created by Maruf on 15/7/26.
 //
-//  This is now the app's Home screen. It owns the single NavigationStack for
-//  the whole app and presents two features as tappable cards. The
-//  destinations (RemindersView, CountdownTimerView) deliberately do NOT wrap
-//  themselves in their own NavigationStack — they rely on this one, so their
-//  own .navigationTitle/.toolbar still show up correctly once pushed.
+//  The app's Home screen — presents both features as tappable cards and
+//  owns the single NavigationStack for the app.
 //
 
 import SwiftUI
@@ -50,7 +47,7 @@ struct ContentView: View {
     }
 }
 
-/// A large tappable card shown on the home screen for one feature.
+// A large tappable card shown on the home screen for one feature.
 private struct HomeFeatureCard: View {
     let title: String
     let subtitle: String
